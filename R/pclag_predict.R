@@ -13,8 +13,8 @@ pclag_predict <- function(year) {
 
   # Get a year's sst_change
   sst_change_t8 <- get_sst_change(year-8)
-  sst_change_t11 <- get_sst_change(year-17)
-  sst_change_t17 <- get_sst_change(year-18)
+  sst_change_t17 <- get_sst_change(year-17)
+  sst_change_t18 <- get_sst_change(year-18)
   sst_change_t42 <- get_sst_change(year-42)
 
   # Get principal components
