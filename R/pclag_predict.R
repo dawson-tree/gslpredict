@@ -7,8 +7,8 @@ pclag_predict <- function(year) {
 
   # Get a year's prcp
   prcp_t8 <- get_prcp(year-8)
-  prcp_t11 <- get_prcp(year-17)
-  prcp_t17 <- get_prcp(year-18)
+  prcp_t17 <- get_prcp(year-17)
+  prcp_t18 <- get_prcp(year-18)
   prcp_t42 <- get_prcp(year-42)
 
   # Get a year's sst_change

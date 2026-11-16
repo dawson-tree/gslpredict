@@ -214,3 +214,94 @@ get_prcp <- function(year) {
 }
 
 
+#' @importFrom readnoaa noaa_stations
+#' @importFrom sf st_bbox st_transform st_as_sf st_join st_intersects
+#' @importFrom dplyr group_by summarize n
+#' @importFrom data.table fread
+#'
+#' @export
+get_clean_prcp <- function(year) {
+
+  url <- paste0("https://www.ncei.noaa.gov/pub/data/ghcn/daily/by_year/",
+                year,
+                ".csv.gz")
+
+  old_opts <- options(timeout = 1000)
+  on.exit(options(old_opts))
+  year_record <- data.table::fread(url,
+                                   data.table = FALSE)
+
+
+  year_prcp <- year_record[year_record$V3 == "PRCP",]
+
+  gsl_bbox <- sf::st_bbox(gsl_watershed) |>
+    sf::st_transform(crs = 4326)
+  gsl_bbox <- gsl_bbox[c(2,1,4,3)]
+
+  stations <- readnoaa::noaa_stations(bbox = gsl_bbox, limit = 10000L)
+  stations_sf <- sf::st_as_sf(stations,
+                              coords = c("longitude", "latitude"),
+                              crs = 4326)
+  gsl_stations <- sf::st_join(stations_sf,
+                              gsl_watershed,
+                              join = sf::st_intersects,
+                              left = FALSE)
+  gsl_station_ids <- gsl_stations$station
+
+  gsl_year_prcp <- year_prcp[year_prcp$V1 %in% gsl_station_ids,]
+
+  gsl_year_prcp$year <- gsl_year_prcp$V2 |>
+    as.character() |>
+    substr(start = 1, stop = 4)
+
+  gsl_year_prcp$month <- gsl_year_prcp$V2 |>
+    as.character() |>
+    substr(start = 5, stop = 6)
+
+  prcp_month_means <- gsl_year_prcp |>
+    dplyr::group_by(V1, year, month) |>
+    dplyr::summarize(
+      prcp_month_mean = mean(V4, na.rm = TRUE),
+      prcp_month_n = dplyr::n()
+    )
+
+  # Only include months with at least 90% non-missing days
+  prcp_month_means$cutoff <- apply(prcp_month_means, MARGIN = 1, function(data) {
+    (0.9 * month_n_days(data['month'],
+                        data['year'])) |>
+      ceiling()
+  })
+
+  prcp_month_means <- prcp_month_means[
+    prcp_month_means$prcp_month_n >= prcp_month_means$cutoff,
+  ]
+
+  prcp_year_means <- prcp_month_means |>
+    dplyr::group_by(V1, year) |>
+    dplyr::summarize(
+      prcp_year_mean = mean(prcp_month_mean, na.rm = TRUE),
+      prcp_year_n = dplyr::n()
+    )
+
+  # Only include stations with valid data for every month of the year
+  prcp_year_means <- prcp_year_means[prcp_year_means$prcp_year_n == 12,]
+
+  # Find the mean and convert it from mm to inches
+  mean(prcp_year_means$prcp_year_mean)/25.4
+
+}
+
+
+month_n_days <- function(month, year) {
+  first_day_string <- paste0(year, "-", month, "-01")
+  first_day <- as.Date(format(as.Date(first_day_string), "%Y-%m-01"))
+
+  # Find the 1st day of the following month
+  next_month <- seq(first_day, length = 2, by = "1 month")[2]
+
+  # Subtract the two dates to get the difference in days
+  as.integer(next_month - first_day)
+}
+
+
+
