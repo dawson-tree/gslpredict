@@ -13,7 +13,7 @@ plan(multisession, workers = n_cores - 2)
 clean_prcp <- future_lapply(prcp_years, function(year) {
 
   result <- tryCatch({
-    get_clean_prcp(year)
+    get_clean_prcp_cal(year)
   }, error = function(e) {
     message(paste("Error in year", year, "->", e$message))
     return(NA)
@@ -28,7 +28,7 @@ clean_prcp <- unlist(clean_prcp)
 # Save results
 saveRDS(
   clean_prcp,
-  file = "C:/Users/dtree/UCC/Data/saved_clean_prcp.rds"
+  file = "C:/Users/A02324772/Desktop/UCC Data/saved_clean_prcp_cal.rds"
 )
 
 # Shut down parallel workers
@@ -55,23 +55,23 @@ plan(sequential)
 
 # clean_prcp_first <- readRDS("C:/Users/dtree/OneDrive/Desktop/UCC/Data/saved_clean_prcp.rds")
 
-clean_prcp_full <- lapply(1:126, function(i) {
-  year <- i + 1899
-  if (is.null(clean_prcp[[i]])) {
-    tryCatch({
-      prcp <- get_prcp(year)
-      return(prcp)
-    }, error = function(e) {
-      message(paste("Error in year ", x, "->", e$message))
-      return(NULL) # or return a placeholder / error record
-    })
-  } else {
-    return(clean_prcp[[i]])
-  }
-})
+# clean_prcp_full <- lapply(1:126, function(i) {
+#   year <- i + 1899
+#   if (is.null(clean_prcp[[i]])) {
+#     tryCatch({
+#       prcp <- get_prcp(year)
+#       return(prcp)
+#     }, error = function(e) {
+#       message(paste("Error in year ", x, "->", e$message))
+#       return(NULL) # or return a placeholder / error record
+#     })
+#   } else {
+#     return(clean_prcp[[i]])
+#   }
+# })
 
-clean_prcp_historic <- unlist(clean_prcp_full)
+clean_prcp_historic_cal <- clean_prcp
 
-names(clean_prcp_historic) <- as.character(1900:2025)
+names(clean_prcp_historic_cal) <- as.character(1900:2025)
 
-usethis::use_data(clean_prcp_historic, overwrite = TRUE)
+usethis::use_data(clean_prcp_historic_cal, overwrite = TRUE)
