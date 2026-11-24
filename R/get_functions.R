@@ -298,19 +298,25 @@ get_clean_prcp_cal <- function(year) {
 #' @importFrom data.table fread
 #'
 #' @export
-get_clean_prcp_water <- function(year) {
+get_clean_prcp_water <- function(year1, year2) {
 
-  url <- paste0("https://www.ncei.noaa.gov/pub/data/ghcn/daily/by_year/",
-                year,
-                ".csv.gz")
+  url1 <- paste0("https://www.ncei.noaa.gov/pub/data/ghcn/daily/by_year/",
+                 year1,
+                 ".csv.gz")
+  url2 <- paste0("https://www.ncei.noaa.gov/pub/data/ghcn/daily/by_year/",
+                 year2,
+                 ".csv.gz")
 
   old_opts <- options(timeout = 1000)
   on.exit(options(old_opts))
-  year_record <- data.table::fread(url,
-                                   data.table = FALSE)
+  year1_record <- data.table::fread(url1,
+                                    data.table = FALSE)
+  year2_record <- data.table::fread(url2,
+                                    data.table = FALSE)
 
-
-  year_prcp <- year_record[year_record$V3 == "PRCP",]
+  year1_prcp <- year1_record[year1_record$V3 == "PRCP",]
+  year2_prcp <- year2_record[year2_record$V3 == "PRCP",]
+  prcp <- rbind(year1_prcp, year2_prcp)
 
   gsl_bbox <- sf::st_bbox(gsl_watershed) |>
     sf::st_transform(crs = 4326)
@@ -326,28 +332,30 @@ get_clean_prcp_water <- function(year) {
                               left = FALSE)
   gsl_station_ids <- gsl_stations$station
 
-  gsl_year_prcp <- year_prcp[year_prcp$V1 %in% gsl_station_ids,]
+  gsl_prcp <- prcp[prcp$V1 %in% gsl_station_ids,]
 
-  gsl_year_prcp$year <- gsl_year_prcp$V2 |>
+  gsl_prcp$year <- gsl_prcp$V2 |>
     as.character() |>
     substr(start = 1, stop = 4)
 
-  gsl_year_prcp$month <- gsl_year_prcp$V2 |>
+  gsl_prcp$month <- gsl_prcp$V2 |>
     as.character() |>
     substr(start = 5, stop = 6)
 
-  gsl_year_prcp$year <- ifelse(as.numeric(gsl_year_prcp$month) > 7,
-                               paste0(year,
-                                      "/",
-                                      as.character(as.numeric(year) + 1)),
-                               paste0(as.character(as.numeric(year) - 1),
-                                      "/",
-                                      year)
+  gsl_prcp$water_year <- ifelse(as.numeric(gsl_prcp$month) > 7,
+                                paste0(gsl_prcp$year,
+                                       "/",
+                                       as.character(
+                                         as.numeric(gsl_prcp$year) + 1)),
+                                paste0(as.character(
+                                  as.numeric(gsl_prcp$year) - 1),
+                                  "/",
+                                  gsl_prcp$year)
   )
 
 
-  prcp_month_means <- gsl_year_prcp |>
-    dplyr::group_by(V1, year, month) |>
+  prcp_month_means <- gsl_prcp |>
+    dplyr::group_by(V1, water_year, year, month,) |>
     dplyr::summarize(
       prcp_month_mean = mean(V4, na.rm = TRUE),
       prcp_month_n = dplyr::n()
@@ -365,7 +373,7 @@ get_clean_prcp_water <- function(year) {
   ]
 
   prcp_year_means <- prcp_month_means |>
-    dplyr::group_by(V1, year) |>
+    dplyr::group_by(V1, water_year) |>
     dplyr::summarize(
       prcp_year_mean = mean(prcp_month_mean, na.rm = TRUE),
       prcp_year_n = dplyr::n()

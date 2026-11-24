@@ -4,13 +4,21 @@ lagged_data <- function(var,
                         lag,
                         start = "1942-1943") {
   var_historic <- NULL
-  if (var == "gsl_change") {
-    var_historic <- gsl_change_historic
-  } else if (var == "prcp"){
-    var_historic <- cleaned_prcp_historic
-  } else if (var == "sst"){
-    var_historic <- sst_historic[-1]
+  if (var == "gsl_change_cal") {
+    var_historic <- gsl_change_historic_cal
+  } else if (var == "gsl_change_water"){
+    var_historic <- gsl_change_historic_water
+  } else if (var == "prcp_cal"){
+    var_historic <- clean_prcp_historic_cal
+  } else if (var == "prcp_water"){
+    var_historic <- clean_prcp_historic_water
+  } else if (var == "sst_cal"){
+    var_historic <- sst_historic_cal
+  } else if (var == "sst_water"){
+    var_historic <- sst_historic_water
   }
+
+  # ref <-
 
   var_historic[
     (which(names(gsl_change_historic) == start) - lag):
@@ -18,6 +26,25 @@ lagged_data <- function(var,
   ]
 
 }
+
+# lagged_data <- function(var,
+#                         lag,
+#                         start = "1942-1943") {
+#   var_historic <- NULL
+#   if (var == "gsl_change") {
+#     var_historic <- gsl_change_historic
+#   } else if (var == "prcp"){
+#     var_historic <- cleaned_prcp_historic
+#   } else if (var == "sst"){
+#     var_historic <- sst_historic[-1]
+#   }
+#
+#   var_historic[
+#     (which(names(gsl_change_historic) == start) - lag):
+#       (length(gsl_change_historic) - lag)
+#   ]
+#
+# }
 
 #' @export
 data_split <- function(df) {
